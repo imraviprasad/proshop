@@ -1,37 +1,57 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import Product from "../models/productModel.js";
 
-// @dsc  Fetch all products
-//@route GET /api/products
-//@access Public
+// @desc    Fetch all products
+// @route   GET /api/products
+// @access  Public
 const getProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find({});
-  res.json(products);
+  const pageSize = process.env.PAGINATION_LIMIT;
+  const page = Number(req.query.pageNumber) || 1;
+
+  const keyword = req.query.keyword
+    ? {
+        name: {
+          $regex: req.query.keyword,
+          $options: "i",
+        },
+      }
+    : {};
+
+  const count = await Product.countDocuments({ ...keyword });
+  const products = await Product.find({ ...keyword })
+    .limit(pageSize)
+    .skip(pageSize * (page - 1));
+
+  res.json({ products, page, pages: Math.ceil(count / pageSize) });
 });
 
-// @dsc  Fetch a products
-//@route GET /api/products/:id
-//@access Public
+// @desc    Fetch single product
+// @route   GET /api/products/:id
+// @access  Public
 const getProductById = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id);
+  // NOTE: checking for valid ObjectId to prevent CastError moved to separate
+  // middleware. See README for more info.
 
+  const product = await Product.findById(req.params.id);
   if (product) {
     return res.json(product);
   } else {
+    // NOTE: this will run if a valid ObjectId but no product was found
+    // i.e. product may be null
     res.status(404);
-    throw new Error("Resource not found");
+    throw new Error("Product not found");
   }
 });
 
-// @dsc    Create a products
-// @route  POST /api/products
-// @access Priivate/Admin
+// @desc    Create a product
+// @route   POST /api/products
+// @access  Private/Admin
 const createProduct = asyncHandler(async (req, res) => {
   const product = new Product({
     name: "Sample name",
     price: 0,
     user: req.user._id,
-    image: "/image/sample.jpg",
+    image: "/images/sample.jpg",
     brand: "Sample brand",
     category: "Sample category",
     countInStock: 0,
@@ -77,7 +97,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
   if (product) {
     await Product.deleteOne({ _id: product._id });
-    res.status(200).json({ message: "Product removed" });
+    res.json({ message: "Product removed" });
   } else {
     res.status(404);
     throw new Error("Product not found");
