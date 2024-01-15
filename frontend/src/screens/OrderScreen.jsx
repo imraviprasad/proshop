@@ -17,7 +17,7 @@ import Loader from "../components/Loader";
 import {
   useGetOrderDetailsQuery,
   usePayOrderMutation,
-  useGetPayPalClientIdQuery,
+  useGetPaypalClientIdQuery,
 } from "../slices/ordersApiSlice";
 
 const OrderScreen = () => {
@@ -38,7 +38,7 @@ const OrderScreen = () => {
     data: paypal,
     isLoading: loadingPayPal,
     error: errorPayPal,
-  } = useGetPayPalClientIdQuery();
+  } = useGetPaypalClientIdQuery();
 
   const { userInfo } = useSelector((state) => state.auth);
 
